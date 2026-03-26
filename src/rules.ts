@@ -1,5 +1,6 @@
 import type { Rule, Finding, FileDiff, ParsedDiff } from "./types.js";
 import { classifyFile } from "./parser.js";
+import { extendedRules } from "./rules-extended.js";
 
 /** Check added lines for pattern matches */
 function checkAddedLines(
@@ -602,6 +603,8 @@ export const builtinRules: Rule[] = [
   // Dependencies
   dependencyChange,
   lockfileConflict,
+  // Extended security rules
+  ...extendedRules,
 ];
 
 /**
