@@ -7,6 +7,7 @@ import type {
 } from "./types.js";
 import { parseDiff } from "./parser.js";
 import { getRules } from "./rules.js";
+import { matchAny } from "./glob.js";
 import {
   calculateScore,
   buildSummary,
@@ -30,16 +31,7 @@ export function analyze(
   // Apply exclude files filter
   const filesToAnalyze = config?.excludeFiles
     ? diff.files.filter(
-        (f) =>
-          !config.excludeFiles!.some((pattern) => {
-            if (pattern.includes("*")) {
-              const regex = new RegExp(
-                "^" + pattern.replace(/\*/g, ".*") + "$"
-              );
-              return regex.test(f.newPath);
-            }
-            return f.newPath.includes(pattern);
-          })
+        (f) => !matchAny(f.newPath, config.excludeFiles!)
       )
     : diff.files;
 

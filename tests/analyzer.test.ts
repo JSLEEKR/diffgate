@@ -126,7 +126,7 @@ describe("analyze", () => {
   });
 
   it("respects exclude files", () => {
-    const result = analyze(MULTI_RISK_DIFF, { excludeFiles: ["*.sql"] });
+    const result = analyze(MULTI_RISK_DIFF, { excludeFiles: ["**/*.sql"] });
     const sqlFindings = result.findings.filter((f) => f.file.endsWith(".sql"));
     expect(sqlFindings).toHaveLength(0);
   });

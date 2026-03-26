@@ -10,6 +10,7 @@ export {
 } from "./scorer.js";
 export { format, formatText, formatJSON, formatOneline, formatMarkdown } from "./reporter.js";
 export { run } from "./cli.js";
+export { globToRegex, matchGlob, matchAny } from "./glob.js";
 
 export type {
   ParsedDiff,
