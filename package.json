@@ -1,0 +1,25 @@
+{
+  "name": "diffgate",
+  "version": "0.1.0",
+  "description": "Analyze code diffs for risky patterns, blast radius, and security concerns",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "diffgate": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["diff", "code-review", "security", "blast-radius", "git"],
+  "author": "JSLEEKR <93jslee@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}
