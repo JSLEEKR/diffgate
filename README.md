@@ -7,15 +7,15 @@
 [![GitHub Stars](https://img.shields.io/github/stars/JSLEEKR/diffgate?style=for-the-badge&logo=github&color=yellow)](https://github.com/JSLEEKR/diffgate/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-136%20passing-brightgreen?style=for-the-badge)](#)
+[![Tests](https://img.shields.io/badge/tests-446%20passing-brightgreen?style=for-the-badge)](#)
 
 <br/>
 
 **Catch risky code changes before they reach production**
 
-Security Scanning + Blast Radius + Config Safety + SQL Protection
+Security Scanning + Blast Radius + Config Safety + SQL Protection + SARIF + CODEOWNERS
 
-[Quick Start](#quick-start) | [Rules](#rules) | [CI Integration](#ci-integration) | [API](#api)
+[Quick Start](#quick-start) | [Rules](#rules) | [CI Integration](#ci-integration) | [API](#api) | [Profiles](#profiles)
 
 </div>
 
@@ -25,12 +25,19 @@ Security Scanning + Blast Radius + Config Safety + SQL Protection
 
 Code reviews catch bugs, but they miss systemic risks. A 500-line diff touching source, infrastructure, and database files has a different blast radius than a 10-line typo fix. A `.env` file slipping into a commit goes unnoticed until credentials leak. A `DROP TABLE` in a migration file passes review because the reviewer was focused on the application code.
 
-diffgate scores every diff for risk. Pipe in a unified diff, point it at a git branch, or integrate it into CI -- it runs 17 rules across 6 categories and returns a risk score with specific findings. No AI, no network calls, pure static analysis.
+diffgate scores every diff for risk. Pipe in a unified diff, point it at a git branch, or integrate it into CI -- it runs 23 rules across 6 categories and returns a risk score with specific findings. No AI, no network calls, pure static analysis.
 
-- **17 built-in rules** across security, blast radius, config, code quality, database, and dependencies
+- **23 built-in rules** across security, blast radius, config, code quality, database, and dependencies
 - **Risk scoring** with severity weights and level classification (safe/caution/warning/danger/critical)
-- **4 output formats** -- text, JSON, one-line, and Markdown (for PR comments)
+- **7 output formats** -- text, JSON, one-line, Markdown, SARIF, GitHub Actions annotations, PR review comments
 - **Gate mode** -- fail CI when risk score exceeds threshold
+- **5 built-in profiles** -- strict, security, relaxed, ci, review
+- **Custom rules** -- define pattern-based rules in JSON config
+- **CODEOWNERS integration** -- map changes to team ownership
+- **Diff comparison** -- detect regressions between versions
+- **Batch analysis** -- analyze multiple PRs at once
+- **Trend tracking** -- historical score analysis with sparklines
+- **Fix suggestions** -- actionable remediation for every finding
 - **Zero dependencies** -- pure Node.js, no external packages
 
 ## Quick Start
@@ -60,6 +67,12 @@ git diff main...HEAD | diffgate --max-score 30
 | SEC002 | Dangerous Functions | security | high | eval(), exec(), innerHTML, os.system() |
 | SEC003 | SQL Injection Risk | security | critical | String concatenation in SQL queries |
 | SEC004 | Disabled Security | security | high | verify=false, disabled CSRF/TLS/auth |
+| SEC005 | Path Traversal Risk | security | high | ../ patterns, unsanitized file paths |
+| SEC006 | Command Injection | security | critical | Template literals in exec/spawn |
+| SEC007 | Weak Cryptography | security | high | MD5, SHA-1, DES, RC4 usage |
+| SEC008 | CORS Wildcard | security | medium | Wildcard (*) CORS origins |
+| SEC009 | Hardcoded IP | security | low | Non-localhost IP addresses |
+| SEC010 | Unsafe Deserialization | security | high | pickle, yaml.load, unserialize |
 | BR001 | Large File Change | blast-radius | medium | Files with >100 or >300 changed lines |
 | BR002 | Many Files Changed | blast-radius | medium | Diffs touching >10 or >20 files |
 | BR003 | Cross-Category Change | blast-radius | medium | Changes spanning 3+ categories |
@@ -74,6 +87,30 @@ git diff main...HEAD | diffgate --max-score 30
 | DEP001 | Dependency Change | dependencies | medium | Dependency manifest modifications |
 | DEP002 | Lockfile Without Manifest | dependencies | low | Lockfile changed without manifest change |
 
+## Profiles
+
+```bash
+# Strict mode (max score 25, all rules)
+diffgate --profile strict
+
+# Security-only scan
+diffgate --profile security
+
+# CI pipeline mode
+diffgate --profile ci
+
+# Relaxed (high severity only)
+diffgate --profile relaxed
+```
+
+| Profile | Threshold | Severity | Focus |
+|---------|-----------|----------|-------|
+| strict | 25 | low+ | Maximum coverage |
+| security | 50 | all | Security + .env only |
+| ci | 60 | medium+ | Balanced automation |
+| relaxed | 100 | high+ | Critical issues only |
+| review | none | info+ | All findings visible |
+
 ## CI Integration
 
 ### GitHub Actions
@@ -82,6 +119,11 @@ git diff main...HEAD | diffgate --max-score 30
 - name: Risk Analysis
   run: |
     git diff origin/main...HEAD | npx diffgate --max-score 50 --format markdown
+
+- name: SARIF Upload
+  run: |
+    git diff origin/main...HEAD | npx diffgate --format sarif > results.sarif
+    # Upload to GitHub Code Scanning
 ```
 
 ### Pre-commit Hook
@@ -106,41 +148,58 @@ Blast radius: small (3 files, 45 lines, 2 categories)
      Dockerfile
 ```
 
-### JSON
+### JSON / SARIF / Markdown / One-line
 ```bash
-diffgate --format json    # Full structured output
+diffgate --format json       # Full structured output
+diffgate --format sarif      # GitHub Code Scanning compatible
+diffgate --format markdown   # PR comment format with tables
+diffgate --format oneline    # CAUTION (26) | 2 findings | 2 files
 ```
 
-### Markdown
-```bash
-diffgate --format markdown  # PR comment format with tables
-```
+## Custom Rules
 
-### One-line
-```bash
-diffgate --format oneline   # CAUTION (26) | 2 findings | 2 files
+Create `.diffgaterc.json`:
+
+```json
+{
+  "excludeRules": ["CQ001"],
+  "excludeFiles": ["**/*.test.ts"],
+  "maxScore": 50,
+  "customRules": [
+    {
+      "id": "TEAM001",
+      "name": "No Direct DB Access",
+      "pattern": "new Pool|createConnection",
+      "filePatterns": ["src/api/**/*.ts"],
+      "severity": "high",
+      "message": "Use the repository layer instead of direct DB access"
+    }
+  ]
+}
 ```
 
 ## API
 
 ```typescript
-import { analyze, gate, parseDiff } from "diffgate";
+import { analyze, gate, parseDiff, compare, batchAnalyze } from "diffgate";
 
 // Analyze a diff string
 const result = analyze(diffString);
 console.log(result.score.level);  // "warning"
-console.log(result.findings);     // Finding[]
 
 // Gate mode
-const { passed, result } = gate(diffString, { maxScore: 30 });
-if (!passed) process.exit(1);
+const { passed } = gate(diffString, { maxScore: 30 });
 
-// With config
-const result = analyze(diffString, {
-  excludeRules: ["CQ001", "CQ002"],
-  severityThreshold: "medium",
-  excludeFiles: ["*.test.ts"],
-});
+// Compare two versions
+const comp = compare(beforeResult, afterResult);
+console.log(comp.newFindings);    // new risks
+console.log(comp.resolvedFindings); // fixed risks
+
+// Batch analysis
+const batch = batchAnalyze([
+  { id: "pr-1", diff: diff1 },
+  { id: "pr-2", diff: diff2 },
+], { maxScore: 50 });
 ```
 
 ## Scoring
