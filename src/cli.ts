@@ -121,10 +121,18 @@ export function run(args: string[]): number {
         diffText = readFileSync(filePath, "utf-8");
         break;
       case "git": {
-        let cmd = "git diff";
-        if (gitStaged) cmd += " --staged";
-        if (gitBranch) cmd = `git diff ${gitBranch}...HEAD`;
-        diffText = execSync(cmd, { encoding: "utf-8" });
+        let gitArgs: string[] = ["diff"];
+        if (gitStaged) gitArgs.push("--staged");
+        if (gitBranch) {
+          // Sanitize branch name to prevent command injection
+          const safeBranch = gitBranch.replace(/[^a-zA-Z0-9_\-./]/g, "");
+          if (safeBranch !== gitBranch) {
+            process.stderr.write("Error: branch name contains invalid characters\n");
+            return 2;
+          }
+          gitArgs = ["diff", `${safeBranch}...HEAD`];
+        }
+        diffText = execSync(`git ${gitArgs.join(" ")}`, { encoding: "utf-8" });
         break;
       }
       default:
