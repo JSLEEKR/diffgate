@@ -130,6 +130,11 @@ export function run(args: string[]): number {
             process.stderr.write("Error: branch name contains invalid characters\n");
             return 2;
           }
+          // Reject branch names starting with "-" to prevent git flag injection
+          if (safeBranch.startsWith("-")) {
+            process.stderr.write("Error: branch name cannot start with '-'\n");
+            return 2;
+          }
           gitArgs = ["diff", `${safeBranch}...HEAD`];
         }
         diffText = execSync(`git ${gitArgs.join(" ")}`, { encoding: "utf-8" });
