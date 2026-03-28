@@ -37,8 +37,8 @@ export function globToRegex(pattern: string): RegExp {
         regex += "\\{";
         i++;
       }
-    } else if (char === ".") {
-      regex += "\\.";
+    } else if (".|+^$()[]\\".includes(char)) {
+      regex += "\\" + char;
       i++;
     } else {
       regex += char;
