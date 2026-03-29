@@ -1,0 +1,9 @@
+{
+  "name": "diffgate",
+  "description": "Auto-review code diffs for risky patterns — injection, secrets, unsafe code",
+  "version": "1.0.0",
+  "author": { "name": "JSLEEKR" },
+  "repository": "https://github.com/JSLEEKR/diffgate",
+  "license": "MIT",
+  "keywords": ["security", "code-review", "diff", "injection", "secrets"]
+}
